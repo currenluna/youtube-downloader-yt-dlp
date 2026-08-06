@@ -5,60 +5,126 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>YouTube Downloader (yt-dlp)</title>
 <style>
-  :root { color-scheme: dark; }
+  :root { color-scheme: light; }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; min-height: 100vh; background: #0e1113; color: #e8e8e8;
+  html, body {
+    margin: 0; min-height: 100vh; background: #eae9e6; color: #131313;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    display: flex; justify-content: center; padding: 40px 16px;
   }
-  main { width: 100%; max-width: 720px; }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  p.sub { color: #8a9aa8; font-size: 13px; margin: 0 0 24px; }
+  body { display: flex; justify-content: center; padding: 32px 16px 96px; }
+  main { width: 100%; max-width: 640px; }
 
-  .row { display: flex; gap: 8px; margin-bottom: 16px; }
+  h1 {
+    font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 4px;
+    text-transform: uppercase;
+  }
+  p.sub { color: #6b6b68; font-size: 13px; margin: 0 0 28px; }
+
+  .section-title {
+    display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; color: #131313; margin: 28px 0 10px;
+  }
+  .section-title .dot { width: 6px; height: 6px; border-radius: 50%; background: #131313; flex: none; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
   input[type="url"] {
-    flex: 1; background: #181c20; border: 1px solid #2a2f35; color: #e8e8e8;
-    border-radius: 6px; padding: 10px 12px; font-size: 14px;
+    flex: 1 1 220px; min-width: 0; background: #f5f4f1; border: 1px solid #d2d1cc; color: #131313;
+    border-radius: 4px; padding: 11px 12px; font-size: 14px;
   }
-  input[type="url"]:focus { outline: none; border-color: #4a90d9; }
+  input[type="url"]:focus { outline: none; border-color: #131313; }
+  input[type="url"]::placeholder { color: #9a9a95; }
+
   button {
-    background: #2a3138; color: #e8e8e8; border: 1px solid #3a4249; border-radius: 6px;
-    padding: 10px 16px; font-size: 13px; cursor: pointer; white-space: nowrap;
+    background: #f5f4f1; color: #131313; border: 1px solid #d2d1cc; border-radius: 4px;
+    padding: 11px 16px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em;
+    text-transform: uppercase; cursor: pointer; white-space: nowrap;
   }
-  button:hover:not(:disabled) { background: #343d45; }
+  button:hover:not(:disabled) { border-color: #131313; }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.primary { background: #2f6fb0; border-color: #3a80c9; }
-  button.primary:hover:not(:disabled) { background: #3680c9; }
+  button.primary { background: #131313; color: #fff; border-color: #131313; }
+  button.primary:hover:not(:disabled) { background: #333; }
+  button.primary:disabled { background: #d2d1cc; color: #8c8c88; border-color: #d2d1cc; }
 
-  #status { font-size: 13px; color: #8a9aa8; min-height: 18px; margin-bottom: 16px; }
-  #status.error { color: #e06c6c; }
+  #status { font-size: 12.5px; color: #6b6b68; min-height: 18px; margin-top: 10px; }
+  #status.error { color: #b3261e; }
 
-  #video-card { display: none; gap: 14px; margin-bottom: 20px; padding: 14px; background: #14171a; border: 1px solid #2a2f35; border-radius: 8px; }
-  #video-card img { width: 140px; height: 79px; object-fit: cover; border-radius: 4px; flex: none; background: #1b1f24; }
-  #video-meta h2 { font-size: 14px; margin: 0 0 6px; }
-  #video-meta div { font-size: 12px; color: #8a9aa8; }
+  #video-card {
+    display: none; gap: 14px; margin-top: 24px; padding: 12px; background: #f5f4f1;
+    border: 1px solid #d2d1cc; border-radius: 6px;
+  }
+  #video-card img { width: 128px; height: 72px; object-fit: cover; border-radius: 3px; flex: none; background: #e2e1dc; }
+  #video-meta h2 { font-size: 13.5px; font-weight: 600; margin: 0 0 6px; line-height: 1.3; }
+  #video-meta div { font-size: 11.5px; color: #6b6b68; }
 
-  .presets { display: flex; gap: 8px; margin-bottom: 20px; }
+  /* Shared "pickable" row style used by both presets and format rows,
+     so selecting either highlights consistently. */
+  .option-row {
+    display: flex; align-items: center; gap: 10px; padding: 10px 4px;
+    border-bottom: 1px solid #d9d8d3; cursor: pointer;
+  }
+  .option-row:last-child { border-bottom: none; }
+  .option-row:hover { background: #f0efec; }
+  .option-row.selected { background: #131313; color: #fff; }
+  .option-row .dot {
+    width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #9a9a95; flex: none;
+  }
+  .option-row.selected .dot { background: #fff; border-color: #fff; }
+
+  #presets { display: none; border: 1px solid #d2d1cc; border-radius: 6px; padding: 0 10px; background: #f5f4f1; }
+  .preset-text { display: flex; flex-direction: column; gap: 1px; }
+  .preset-text .label { font-size: 13px; font-weight: 600; }
+  .preset-text .sub { font-size: 11px; color: #6b6b68; }
+  .option-row.selected .preset-text .sub { color: #c9c9c9; }
 
   #formats { display: none; }
-  #formats h3 { font-size: 13px; color: #aab2bb; margin: 0 0 10px; font-weight: 600; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #22262b; }
-  th { color: #8a9aa8; font-weight: 500; font-size: 11.5px; text-transform: uppercase; }
-  tbody tr { cursor: pointer; }
-  tbody tr:hover { background: #181c20; }
-  tbody tr.selected { background: #1c2a3a; }
-  td.mono { font-variant-numeric: tabular-nums; color: #cfd6dc; }
+  #formats .hint { font-size: 11px; color: #6b6b68; margin: 0 0 10px; }
+  #formats .hint code { background: #f0efec; padding: 1px 4px; border-radius: 3px; }
 
-  #download-bar { display: none; align-items: center; justify-content: space-between; margin-top: 20px; padding-top: 16px; border-top: 1px solid #2a2f35; }
-  #download-bar span { font-size: 12.5px; color: #8a9aa8; }
+  .list-wrap { border: 1px solid #d2d1cc; border-radius: 6px; background: #f5f4f1; overflow: hidden; }
+  .list-head, .list-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px; font-size: 12.5px;
+  }
+  .list-head {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    color: #6b6b68; border-bottom: 1px solid #d2d1cc; background: #efeeea;
+  }
+  .list-body { max-height: 320px; overflow-y: auto; }
+  .list-row.option-row { padding: 9px 10px; }
+
+  .col-dot { width: 9px; flex: none; }
+  .col-code { width: 40px; flex: none; font-variant-numeric: tabular-nums; color: #6b6b68; }
+  .option-row.selected .col-code { color: #c9c9c9; }
+  .col-quality { flex: 1 1 40%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .col-codec { flex: 1 1 34%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .col-codec.warn { color: #9a5a1a; }
+  .option-row.selected .col-codec.warn { color: #e0b489; }
+  .col-size { width: 64px; flex: none; text-align: right; font-variant-numeric: tabular-nums; color: #6b6b68; }
+  .option-row.selected .col-size { color: #c9c9c9; }
+  .list-head .col-size { text-align: right; }
+
+  #download-bar {
+    display: none; align-items: center; justify-content: space-between; gap: 12px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    background: #f5f4f1; border-top: 1px solid #d2d1cc; padding: 14px 16px;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
+  }
+  #download-bar-inner { width: 100%; max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  #selection-label { font-size: 12.5px; color: #6b6b68; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #download-btn { flex: none; }
+
+  @media (max-width: 560px) {
+    body { padding: 24px 12px 96px; }
+    h1 { font-size: 21px; }
+    .col-codec { display: none; }
+    #video-card img { width: 84px; height: 56px; }
+    .list-body { max-height: 42vh; }
+  }
 </style>
 </head>
 <body>
 <main>
   <h1>YouTube Downloader</h1>
-  <p class="sub">Paste a link, fetch the available yt-dlp formats, pick one, download.</p>
+  <p class="sub">Paste a link, fetch the available formats, pick one, download.</p>
 
   <div class="row">
     <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." />
@@ -75,35 +141,51 @@
     </div>
   </div>
 
-  <div class="presets" id="presets" style="display:none;">
-    <button id="best-btn">Best quality (merged MP4)</button>
-    <button id="wav-btn">Audio only (WAV, lossless)</button>
-    <button id="mp3-btn">Audio only (MP3, best quality)</button>
+  <div class="section-title" id="presets-title" style="display:none;"><span class="dot"></span> Quick presets</div>
+  <div id="presets">
+    <div class="option-row" id="best-row" data-mode="best">
+      <span class="dot"></span>
+      <span class="preset-text"><span class="label">Best quality</span><span class="sub">Merged MP4, H.264/AAC preferred for native playback</span></span>
+    </div>
+    <div class="option-row" id="wav-row" data-mode="audio_wav">
+      <span class="dot"></span>
+      <span class="preset-text"><span class="label">Audio only — WAV</span><span class="sub">Lossless copy of the best source audio</span></span>
+    </div>
+    <div class="option-row" id="mp3-row" data-mode="audio_mp3">
+      <span class="dot"></span>
+      <span class="preset-text"><span class="label">Audio only — MP3</span><span class="sub">Best-quality VBR encode</span></span>
+    </div>
   </div>
 
   <div id="formats">
-    <h3>Or pick a specific format</h3>
-    <p style="font-size:11.5px;color:#8a9aa8;margin:-4px 0 10px;">
-      Formats with <code>vcodec: vp9</code>/<code>av01</code> or <code>acodec: opus</code> won't preview natively in QuickTime/Preview on Mac (they'll still play fine in VLC). Pick <code>avc1</code> video + <code>mp4a</code> audio for native Mac playback.
+    <div class="section-title"><span class="dot"></span> Or pick a specific format</div>
+    <p class="hint">
+      Codecs in amber (<code>VP9</code>/<code>AV1</code>/<code>Opus</code>) may not preview natively in QuickTime or import cleanly into some editors — they'll still play fine in VLC. <code>H.264</code>/<code>AAC</code> is the safe, edit-friendly choice.
     </p>
-    <table>
-      <thead>
-        <tr><th>Res / Note</th><th>Ext</th><th>Codecs</th><th>Bitrate</th><th>Size</th></tr>
-      </thead>
-      <tbody id="format-rows"></tbody>
-    </table>
+    <div class="list-wrap">
+      <div class="list-head">
+        <span class="col-dot"></span>
+        <span class="col-code">Code</span>
+        <span class="col-quality">Quality</span>
+        <span class="col-codec">Codec</span>
+        <span class="col-size">Size</span>
+      </div>
+      <div class="list-body" id="format-rows"></div>
+    </div>
   </div>
 
   <div id="download-bar">
-    <span id="selection-label">No format selected</span>
-    <button id="download-btn" class="primary" disabled>Download selected</button>
+    <div id="download-bar-inner">
+      <span id="selection-label">No format selected</span>
+      <button id="download-btn" class="primary" disabled>Download</button>
+    </div>
   </div>
 </main>
 
 <script>
 const $ = (id) => document.getElementById(id);
 const statusEl = $("status");
-let selectedFormat = null; // { format_id, needs_merge, label }
+let selectedFormat = null; // { mode, format_id?, needs_merge?, label }
 
 function setStatus(msg, isError) {
   statusEl.textContent = msg || "";
@@ -115,13 +197,64 @@ function humanSize(bytes) {
   const units = ["B", "KB", "MB", "GB"];
   let i = 0, v = bytes;
   while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
-  return v.toFixed(1) + " " + units[i];
+  return v.toFixed(1) + (units[i] === "B" ? "B" : units[i]);
 }
 
 function humanDuration(sec) {
   if (!sec) return "";
   const m = Math.floor(sec / 60), s = Math.round(sec % 60);
   return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+const VCODEC_NAMES = { avc1: "H.264", vp9: "VP9", vp09: "VP9", av01: "AV1" };
+const ACODEC_NAMES = { mp4a: "AAC", opus: "Opus" };
+
+function codecFamily(codec) {
+  return (codec || "").split(".")[0];
+}
+
+function friendlyQuality(f) {
+  if (f.vcodec === "none") {
+    return f.tbr ? `Audio · ${Math.round(f.tbr)}kbps` : "Audio";
+  }
+  const m = (f.resolution || "").match(/x(\d+)/);
+  const height = m ? parseInt(m[1], 10) : null;
+  let label = height ? `${height}p` : (f.resolution || "Unknown");
+  if (f.fps && f.fps > 30) label += Math.round(f.fps);
+  if (f.acodec === "none") label += " · video only";
+  return label;
+}
+
+function friendlyCodec(f) {
+  const parts = [];
+  if (f.vcodec && f.vcodec !== "none") {
+    const key = codecFamily(f.vcodec);
+    parts.push(VCODEC_NAMES[key] || key);
+  }
+  if (f.acodec && f.acodec !== "none") {
+    const key = codecFamily(f.acodec);
+    parts.push(ACODEC_NAMES[key] || key);
+  }
+  return parts.join(" + ") || "—";
+}
+
+function isEditFriendly(f) {
+  const vOk = !f.vcodec || f.vcodec === "none" || f.vcodec.startsWith("avc1");
+  const aOk = !f.acodec || f.acodec === "none" || f.acodec.startsWith("mp4a");
+  return vOk && aOk;
+}
+
+function clearSelection() {
+  document.querySelectorAll(".option-row.selected").forEach((r) => r.classList.remove("selected"));
+}
+
+function selectRow(el, data) {
+  clearSelection();
+  el.classList.add("selected");
+  selectedFormat = data;
+  $("selection-label").textContent = "Selected: " + data.label;
+  $("download-btn").disabled = false;
+  $("download-bar").style.display = "flex";
 }
 
 async function fetchInfo() {
@@ -133,6 +266,7 @@ async function fetchInfo() {
   $("video-card").style.display = "none";
   $("formats").style.display = "none";
   $("presets").style.display = "none";
+  $("presets-title").style.display = "none";
   $("download-bar").style.display = "none";
   selectedFormat = null;
 
@@ -149,34 +283,33 @@ async function fetchInfo() {
     $("title").textContent = data.title || "Untitled";
     $("meta").textContent = [data.uploader, humanDuration(data.duration)].filter(Boolean).join(" • ");
     $("video-card").style.display = "flex";
-    $("presets").style.display = "flex";
+    $("presets").style.display = "block";
+    $("presets-title").style.display = "flex";
+    $("download-bar").style.display = "flex";
 
     const rows = $("format-rows");
     rows.innerHTML = "";
     data.formats.forEach((f) => {
-      const tr = document.createElement("tr");
+      const row = document.createElement("div");
+      row.className = "list-row option-row";
       const needsMerge = f.acodec === "none";
-      tr.innerHTML = `
-        <td>${f.resolution || ""}${f.note ? " · " + f.note : ""}</td>
-        <td class="mono">${f.ext}</td>
-        <td class="mono">${f.vcodec !== "none" ? "v:" + f.vcodec : ""}${f.acodec !== "none" ? " a:" + f.acodec : ""}</td>
-        <td class="mono">${f.tbr ? Math.round(f.tbr) + "k" : "—"}</td>
-        <td class="mono">${humanSize(f.filesize)}</td>
+      const codecClass = isEditFriendly(f) ? "col-codec" : "col-codec warn";
+      row.innerHTML = `
+        <span class="dot"></span>
+        <span class="col-code">${f.format_id}</span>
+        <span class="col-quality">${friendlyQuality(f)}${f.note ? " · " + f.note : ""}</span>
+        <span class="${codecClass}">${friendlyCodec(f)}</span>
+        <span class="col-size">${humanSize(f.filesize)}</span>
       `;
-      tr.addEventListener("click", () => {
-        document.querySelectorAll("#format-rows tr").forEach((r) => r.classList.remove("selected"));
-        tr.classList.add("selected");
-        selectedFormat = {
+      row.addEventListener("click", () => {
+        selectRow(row, {
           mode: "format",
           format_id: f.format_id,
           needs_merge: needsMerge,
-          label: `${f.resolution || "audio"} (${f.ext}, ${f.format_id})`,
-        };
-        $("selection-label").textContent = "Selected: " + selectedFormat.label;
-        $("download-btn").disabled = false;
-        $("download-bar").style.display = "flex";
+          label: `${friendlyQuality(f)} (${f.ext}, ${f.format_id})`,
+        });
       });
-      rows.appendChild(tr);
+      rows.appendChild(row);
     });
     $("formats").style.display = "block";
     setStatus("");
@@ -185,14 +318,6 @@ async function fetchInfo() {
   } finally {
     $("fetch-btn").disabled = false;
   }
-}
-
-function choosePreset(mode, label) {
-  selectedFormat = { mode, label };
-  $("selection-label").textContent = "Selected: " + label;
-  $("download-btn").disabled = false;
-  $("download-bar").style.display = "flex";
-  document.querySelectorAll("#format-rows tr").forEach((r) => r.classList.remove("selected"));
 }
 
 async function downloadSelected() {
@@ -241,9 +366,11 @@ async function downloadSelected() {
 
 $("fetch-btn").addEventListener("click", fetchInfo);
 $("url").addEventListener("keydown", (e) => { if (e.key === "Enter") fetchInfo(); });
-$("best-btn").addEventListener("click", () => choosePreset("best", "Best quality (merged MP4)"));
-$("wav-btn").addEventListener("click", () => choosePreset("audio_wav", "Audio only (WAV, lossless)"));
-$("mp3-btn").addEventListener("click", () => choosePreset("audio_mp3", "Audio only (MP3, best quality)"));
+
+$("best-row").addEventListener("click", () => selectRow($("best-row"), { mode: "best", label: "Best quality (merged MP4)" }));
+$("wav-row").addEventListener("click", () => selectRow($("wav-row"), { mode: "audio_wav", label: "Audio only (WAV, lossless)" }));
+$("mp3-row").addEventListener("click", () => selectRow($("mp3-row"), { mode: "audio_mp3", label: "Audio only (MP3, best quality)" }));
+
 $("download-btn").addEventListener("click", downloadSelected);
 </script>
 </body>
