@@ -2,6 +2,10 @@ import os
 import shutil
 import uuid
 
+import certifi
+
+os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+
 from flask import Flask, after_this_request, jsonify, render_template, request, send_file
 import yt_dlp
 

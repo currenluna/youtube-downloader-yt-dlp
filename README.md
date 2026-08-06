@@ -16,23 +16,17 @@ brew install ffmpeg
 sudo apt install ffmpeg
 ```
 
-Then, from inside the project folder:
+Then, every time you want to run it:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python app.py
+./run.sh
 ```
 
-Open http://localhost:5001.
+That's the only command you need — it creates the virtual environment the first time, keeps dependencies in sync with `requirements.txt` on every run, and starts the server at http://localhost:5001. No manual venv activation, no remembering `pip install`.
 
-**macOS SSL error?** If fetching a video fails with `CERTIFICATE_VERIFY_FAILED`, your Python install is missing root certificates. Fix it with:
-```bash
-pip install certifi
-export SSL_CERT_FILE=$(python -m certifi)
-python app.py
-```
+On macOS you can also just double-click **`run.command`** in Finder instead of using the terminal.
+
+(SSL certificate errors on macOS are handled automatically — the app points itself at `certifi`'s certificate bundle on startup.)
 
 ## Usage
 
