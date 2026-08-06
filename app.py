@@ -94,7 +94,15 @@ def download():
                 "preferredquality": "0",
             }]
     elif mode == "best":
-        opts["format"] = "bestvideo+bestaudio/best"
+        # Prefer H.264 video + AAC audio: the combo QuickTime/Preview/iOS can
+        # actually decode. YouTube's true highest-quality streams are often
+        # VP9/AV1 + Opus, which merge into a ".mp4" that macOS can't play
+        # despite the extension, so those are the fallback, not the first pick.
+        opts["format"] = (
+            "bestvideo[vcodec^=avc1]+bestaudio[acodec^=mp4a]"
+            "/best[vcodec^=avc1]"
+            "/bestvideo+bestaudio/best"
+        )
         opts["merge_output_format"] = "mp4"
     else:
         if not format_id:
