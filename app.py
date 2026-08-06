@@ -66,7 +66,7 @@ def info():
 def download():
     data = request.get_json(force=True) or {}
     url = (data.get("url") or "").strip()
-    mode = data.get("mode", "format")  # "format" | "best" | "audio"
+    mode = data.get("mode", "format")  # "format" | "best" | "audio_wav" | "audio_mp3"
     format_id = data.get("format_id")
     needs_merge = bool(data.get("needs_merge"))
 
@@ -79,13 +79,20 @@ def download():
 
     opts = base_ydl_opts(outtmpl=outtmpl)
 
-    if mode == "audio":
+    if mode in ("audio_wav", "audio_mp3"):
         opts["format"] = "bestaudio/best"
-        opts["postprocessors"] = [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "192",
-        }]
+        if mode == "audio_wav":
+            # Lossless container around the best available source stream -
+            # no re-encoding loss on top of whatever YouTube already applied.
+            opts["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "wav"}]
+        else:
+            # preferredquality "0" = best VBR quality (~V0, ~245kbps avg),
+            # the practical ceiling for MP3.
+            opts["postprocessors"] = [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "0",
+            }]
     elif mode == "best":
         opts["format"] = "bestvideo+bestaudio/best"
         opts["merge_output_format"] = "mp4"

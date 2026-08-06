@@ -28,7 +28,7 @@ Open http://localhost:5001.
 ## Usage
 
 1. Paste a YouTube URL and click **Fetch info**.
-2. Either pick one of the quick presets (**Best quality** merged MP4, or **Audio only** MP3), or choose a specific format from the table.
+2. Either pick one of the quick presets (**Best quality** merged MP4, **Audio only WAV** lossless, or **Audio only MP3** best-quality VBR), or choose a specific format from the table.
 3. Click **Download selected** — the file downloads to your browser once yt-dlp finishes on the server.
 
 Video-only formats are automatically merged with the best available audio track (via ffmpeg) into an MP4.

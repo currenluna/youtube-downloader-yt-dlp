@@ -77,7 +77,8 @@
 
   <div class="presets" id="presets" style="display:none;">
     <button id="best-btn">Best quality (merged MP4)</button>
-    <button id="audio-btn">Audio only (MP3)</button>
+    <button id="wav-btn">Audio only (WAV, lossless)</button>
+    <button id="mp3-btn">Audio only (MP3, best quality)</button>
   </div>
 
   <div id="formats">
@@ -238,7 +239,8 @@ async function downloadSelected() {
 $("fetch-btn").addEventListener("click", fetchInfo);
 $("url").addEventListener("keydown", (e) => { if (e.key === "Enter") fetchInfo(); });
 $("best-btn").addEventListener("click", () => choosePreset("best", "Best quality (merged MP4)"));
-$("audio-btn").addEventListener("click", () => choosePreset("audio", "Audio only (MP3)"));
+$("wav-btn").addEventListener("click", () => choosePreset("audio_wav", "Audio only (WAV, lossless)"));
+$("mp3-btn").addEventListener("click", () => choosePreset("audio_mp3", "Audio only (MP3, best quality)"));
 $("download-btn").addEventListener("click", downloadSelected);
 </script>
 </body>
