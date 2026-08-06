@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>YouTube Downloader (yt-dlp)</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: #0e1113; color: #e8e8e8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex; justify-content: center; padding: 40px 16px;
+  }
+  main { width: 100%; max-width: 720px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { color: #8a9aa8; font-size: 13px; margin: 0 0 24px; }
+
+  .row { display: flex; gap: 8px; margin-bottom: 16px; }
+  input[type="url"] {
+    flex: 1; background: #181c20; border: 1px solid #2a2f35; color: #e8e8e8;
+    border-radius: 6px; padding: 10px 12px; font-size: 14px;
+  }
+  input[type="url"]:focus { outline: none; border-color: #4a90d9; }
+  button {
+    background: #2a3138; color: #e8e8e8; border: 1px solid #3a4249; border-radius: 6px;
+    padding: 10px 16px; font-size: 13px; cursor: pointer; white-space: nowrap;
+  }
+  button:hover:not(:disabled) { background: #343d45; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.primary { background: #2f6fb0; border-color: #3a80c9; }
+  button.primary:hover:not(:disabled) { background: #3680c9; }
+
+  #status { font-size: 13px; color: #8a9aa8; min-height: 18px; margin-bottom: 16px; }
+  #status.error { color: #e06c6c; }
+
+  #video-card { display: none; gap: 14px; margin-bottom: 20px; padding: 14px; background: #14171a; border: 1px solid #2a2f35; border-radius: 8px; }
+  #video-card img { width: 140px; height: 79px; object-fit: cover; border-radius: 4px; flex: none; background: #1b1f24; }
+  #video-meta h2 { font-size: 14px; margin: 0 0 6px; }
+  #video-meta div { font-size: 12px; color: #8a9aa8; }
+
+  .presets { display: flex; gap: 8px; margin-bottom: 20px; }
+
+  #formats { display: none; }
+  #formats h3 { font-size: 13px; color: #aab2bb; margin: 0 0 10px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #22262b; }
+  th { color: #8a9aa8; font-weight: 500; font-size: 11.5px; text-transform: uppercase; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: #181c20; }
+  tbody tr.selected { background: #1c2a3a; }
+  td.mono { font-variant-numeric: tabular-nums; color: #cfd6dc; }
+
+  #download-bar { display: none; align-items: center; justify-content: space-between; margin-top: 20px; padding-top: 16px; border-top: 1px solid #2a2f35; }
+  #download-bar span { font-size: 12.5px; color: #8a9aa8; }
+</style>
+</head>
+<body>
+<main>
+  <h1>YouTube Downloader</h1>
+  <p class="sub">Paste a link, fetch the available yt-dlp formats, pick one, download.</p>
+
+  <div class="row">
+    <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+    <button id="fetch-btn" class="primary">Fetch info</button>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="video-card">
+    <img id="thumb" alt="" />
+    <div id="video-meta">
+      <h2 id="title"></h2>
+      <div id="meta"></div>
+    </div>
+  </div>
+
+  <div class="presets" id="presets" style="display:none;">
+    <button id="best-btn">Best quality (merged MP4)</button>
+    <button id="audio-btn">Audio only (MP3)</button>
+  </div>
+
+  <div id="formats">
+    <h3>Or pick a specific format</h3>
+    <table>
+      <thead>
+        <tr><th>Res / Note</th><th>Ext</th><th>Codecs</th><th>Bitrate</th><th>Size</th></tr>
+      </thead>
+      <tbody id="format-rows"></tbody>
+    </table>
+  </div>
+
+  <div id="download-bar">
+    <span id="selection-label">No format selected</span>
+    <button id="download-btn" class="primary" disabled>Download selected</button>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const statusEl = $("status");
+let selectedFormat = null; // { format_id, needs_merge, label }
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg || "";
+  statusEl.classList.toggle("error", !!isError);
+}
+
+function humanSize(bytes) {
+  if (!bytes) return "—";
+  const units = ["B", "KB", "MB", "GB"];
+  let i = 0, v = bytes;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return v.toFixed(1) + " " + units[i];
+}
+
+function humanDuration(sec) {
+  if (!sec) return "";
+  const m = Math.floor(sec / 60), s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+async function fetchInfo() {
+  const url = $("url").value.trim();
+  if (!url) { setStatus("Enter a YouTube URL first.", true); return; }
+
+  setStatus("Fetching video info and formats…");
+  $("fetch-btn").disabled = true;
+  $("video-card").style.display = "none";
+  $("formats").style.display = "none";
+  $("presets").style.display = "none";
+  $("download-bar").style.display = "none";
+  selectedFormat = null;
+
+  try {
+    const res = await fetch("/api/info", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to fetch info.");
+
+    $("thumb").src = data.thumbnail || "";
+    $("title").textContent = data.title || "Untitled";
+    $("meta").textContent = [data.uploader, humanDuration(data.duration)].filter(Boolean).join(" • ");
+    $("video-card").style.display = "flex";
+    $("presets").style.display = "flex";
+
+    const rows = $("format-rows");
+    rows.innerHTML = "";
+    data.formats.forEach((f) => {
+      const tr = document.createElement("tr");
+      const needsMerge = f.acodec === "none";
+      tr.innerHTML = `
+        <td>${f.resolution || ""}${f.note ? " · " + f.note : ""}</td>
+        <td class="mono">${f.ext}</td>
+        <td class="mono">${f.vcodec !== "none" ? "v:" + f.vcodec : ""}${f.acodec !== "none" ? " a:" + f.acodec : ""}</td>
+        <td class="mono">${f.tbr ? Math.round(f.tbr) + "k" : "—"}</td>
+        <td class="mono">${humanSize(f.filesize)}</td>
+      `;
+      tr.addEventListener("click", () => {
+        document.querySelectorAll("#format-rows tr").forEach((r) => r.classList.remove("selected"));
+        tr.classList.add("selected");
+        selectedFormat = {
+          mode: "format",
+          format_id: f.format_id,
+          needs_merge: needsMerge,
+          label: `${f.resolution || "audio"} (${f.ext}, ${f.format_id})`,
+        };
+        $("selection-label").textContent = "Selected: " + selectedFormat.label;
+        $("download-btn").disabled = false;
+        $("download-bar").style.display = "flex";
+      });
+      rows.appendChild(tr);
+    });
+    $("formats").style.display = "block";
+    setStatus("");
+  } catch (err) {
+    setStatus(err.message, true);
+  } finally {
+    $("fetch-btn").disabled = false;
+  }
+}
+
+function choosePreset(mode, label) {
+  selectedFormat = { mode, label };
+  $("selection-label").textContent = "Selected: " + label;
+  $("download-btn").disabled = false;
+  $("download-bar").style.display = "flex";
+  document.querySelectorAll("#format-rows tr").forEach((r) => r.classList.remove("selected"));
+}
+
+async function downloadSelected() {
+  const url = $("url").value.trim();
+  if (!url || !selectedFormat) return;
+
+  setStatus("Downloading — this can take a while for large videos…");
+  $("download-btn").disabled = true;
+
+  try {
+    const res = await fetch("/api/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url,
+        mode: selectedFormat.mode,
+        format_id: selectedFormat.format_id,
+        needs_merge: selectedFormat.needs_merge,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Download failed.");
+    }
+
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : "download";
+
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setStatus("Downloaded: " + filename);
+  } catch (err) {
+    setStatus(err.message, true);
+  } finally {
+    $("download-btn").disabled = false;
+  }
+}
+
+$("fetch-btn").addEventListener("click", fetchInfo);
+$("url").addEventListener("keydown", (e) => { if (e.key === "Enter") fetchInfo(); });
+$("best-btn").addEventListener("click", () => choosePreset("best", "Best quality (merged MP4)"));
+$("audio-btn").addEventListener("click", () => choosePreset("audio", "Audio only (MP3)"));
+$("download-btn").addEventListener("click", downloadSelected);
+</script>
+</body>
+</html>
